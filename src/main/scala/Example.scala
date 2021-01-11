@@ -7,13 +7,20 @@ object Example extends App {
     .config("spark.master", "local")
     .getOrCreate()
 
+  spark.sparkContext.setLogLevel("ERROR")
+
   val df = spark.readStream
     .format("kafka")
     .option("kafka.bootstrap.servers", "localhost:9092")
     .option("subscribe", "covid")
     .load()
 
-  println(df.head())
+  val query = df.select("offset", "partition", "timestamp", "value")
+    .writeStream.format("kafka")
+    .option("kafka.bootstrap.servers", "localhost:9092")
+    .option("checkpointLocation", "c:/tmp/spark")
+    .option("topic", "newtopic").start()
 
+  query.awaitTermination()
 
 }
